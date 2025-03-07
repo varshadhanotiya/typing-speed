@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getText } from "./api/getText";
 import "./App.css";
 
@@ -7,10 +7,12 @@ const App = () => {
   const [text, setText] = useState("");
   const [writtenValue, setWrittenValue] = useState("");
   const [startTime, setStartTime] = useState(null);
-  const [timer, setTimer] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [WPM, setWPM] = useState(0);
   const [accuracy, setAccuracy] = useState(100);
   const [isFinished, setIsFinished] = useState(false);
+
+  const timerRef = useRef(null);
 
   useEffect(() => {
     const fetchText = async () => {
@@ -41,20 +43,23 @@ const App = () => {
   // Start timer when user types
   useEffect(() => {
     if (writtenValue.length === 1 && !startTime) {
-      setStartTime(Date.now());
+      let start = Date.now();
+      setStartTime(start);
 
-      const interval = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
-
-      return () => clearInterval(interval);
+      timerRef.current = setInterval(() => {
+        setElapsedTime(Date.now() - start);
+      }, 10);
     }
-  }, [writtenValue]);
+
+    return () => {
+      if (isFinished) clearInterval(timerRef.current);
+    };
+  }, [writtenValue, startTime]);
 
   //calculate words per minutes and accuracy
   useEffect(() => {
-    const wordsTyped = writtenValue.trim().split(" ").length;
-    const minutes = timer / 60;
+    const wordsTyped = writtenValue.trim().split(/\s+/).length;
+    const minutes = elapsedTime / 60000;
     if (minutes > 0) {
       setWPM(Math.round(wordsTyped / minutes));
     }
@@ -73,65 +78,66 @@ const App = () => {
       setAccuracy(100);
     }
 
-    // Check if test is complete
-    if (writtenValue >= 1 && writtenValue === text) {
+    if (writtenValue === text) {
       setIsFinished(true);
+      clearInterval(timerRef.current);
     }
-  }, [writtenValue, timer]);
+  }, [writtenValue, elapsedTime]);
+
+  const finishTest = () => {
+    setIsFinished(true);
+    clearInterval(timerRef.current);
+  };
 
   const resetTest = () => {
     setWrittenValue("");
     setStartTime(null);
-    setTimer(0);
+    setElapsedTime(0);
     setWPM(0);
     setAccuracy(100);
     setIsFinished(false);
+    clearInterval(timerRef.current);
   };
 
   return (
     <div className="main-wrapper">
-      <div>
-        <h2>Typing Speed Test</h2>
-        <p className="inputText">
-          {text.split("").map((char, index) => {
-            let color = "black";
-            if (index < writtenValue.length) {
-              color = writtenValue[index] === char ? "black" : "red";
-            }
-            return (
-              <span key={index} style={{ color }}>
-                {char}
-              </span>
-            );
-          })}
+      <h2>Typing Speed Test</h2>
+      <p className="inputText">
+        {text.split("").map((char, index) => {
+          let color = "black";
+          if (index < writtenValue.length) {
+            color = writtenValue[index] === char ? "black" : "red";
+          }
+          return (
+            <span key={index} style={{ color }}>
+              {char}
+            </span>
+          );
+        })}
+      </p>
+      <textarea
+        rows="4"
+        value={writtenValue}
+        onChange={(e) => setWrittenValue(e.target.value)}
+        disabled={isFinished}
+        placeholder="Start typing..."
+      ></textarea>
+      <div style={{ marginTop: "20px" }}>
+        <p>
+          <strong>Time:</strong> {(elapsedTime / 1000).toFixed(2)}s
         </p>
+        <p>
+          <strong>Words Per Minute:</strong> {WPM}
+        </p>
+        <p>
+          <strong>Accuracy:</strong> {accuracy}%
+        </p>
+        {isFinished && (
+          <p style={{ color: "green", fontWeight: "bold" }}>Test Complete!</p>
+        )}
       </div>
-      <div>
-        <textarea
-          rows="4"
-          value={writtenValue}
-          onChange={(e) => {
-            setWrittenValue(e.target.value);
-          }}
-          disabled={isFinished}
-          placeholder="start typing.................."
-        ></textarea>
-        <div style={{ marginTop: "20px" }}>
-          <p>
-            <strong>Time:</strong> {timer}s
-          </p>
-          <p>
-            <strong>Words Per Minute:</strong> {WPM}
-          </p>
-          <p>
-            <strong>Accuracy:</strong> {accuracy}%
-          </p>
-          {isFinished && (
-            <p style={{ color: "green", fontWeight: "bold" }}>Test Complete!</p>
-          )}
-        </div>
-        <button onClick={resetTest}>Reset Test</button>
-      </div>
+      <button onClick={resetTest}>Reset Test</button>
+      {!isFinished && <button onClick={finishTest}>Finish Test</button>}
     </div>
   );
 };
