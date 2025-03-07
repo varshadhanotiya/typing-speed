@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { getText } from "./api/getText";
+import "./App.css";
 
 const App = () => {
-  const API_KEY = import.meta.env.VITE_API_KEY;
+  // const API_KEY = import.meta.env.VITE_API_KEY;
   const [text, setText] = useState("");
   const [writtenValue, setWrittenValue] = useState("");
   const [startTime, setStartTime] = useState(null);
@@ -11,19 +13,29 @@ const App = () => {
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
-    fetch(
-      "https://randommer.io/api/Text/LoremIpsum?loremType=business&type=words&number=200",
-      {
-        method: "GET",
-        headers: {
-          accept: "*/*",
-          "X-Api-Key": API_KEY,
-        },
+    const fetchText = async () => {
+      const data = await getText("business", "words", 150);
+      if (data) {
+        setText(data);
       }
-    )
-      .then((response) => response.json())
-      .then((data) => setText(data))
-      .catch((error) => console.error("Error fetching data:", error));
+    };
+
+    fetchText();
+
+    //   const response = axios
+    //     .get("https://randommer.io/api/Text/LoremIpsum", {
+    //       params: {
+    //         loremType: "business",
+    //         type: "words",
+    //         number: 50,
+    //       },
+    //       headers: {
+    //         accept: "*/*",
+    //         "X-Api-Key": API_KEY,
+    //       },
+    //     })
+    //     .then((response) => setText(response.data))
+    //     .catch((error) => console.error("Error fetching data:", error));
   }, []);
 
   // Start timer when user types
@@ -62,7 +74,7 @@ const App = () => {
     }
 
     // Check if test is complete
-    if (writtenValue === text) {
+    if (writtenValue >= 1 && writtenValue === text) {
       setIsFinished(true);
     }
   }, [writtenValue, timer]);
@@ -77,10 +89,10 @@ const App = () => {
   };
 
   return (
-    <div>
+    <div className="main-wrapper">
       <div>
         <h2>Typing Speed Test</h2>
-        <p>
+        <p className="inputText">
           {text.split("").map((char, index) => {
             let color = "black";
             if (index < writtenValue.length) {
@@ -96,6 +108,7 @@ const App = () => {
       </div>
       <div>
         <textarea
+          rows="4"
           value={writtenValue}
           onChange={(e) => {
             setWrittenValue(e.target.value);
