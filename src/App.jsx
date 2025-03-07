@@ -78,7 +78,7 @@ const App = () => {
       setAccuracy(100);
     }
 
-    if (writtenValue === text) {
+    if (writtenValue && writtenValue === text) {
       setIsFinished(true);
       clearInterval(timerRef.current);
     }
@@ -137,7 +137,9 @@ const App = () => {
         )}
       </div>
       <button onClick={resetTest}>Reset Test</button>
-      {!isFinished && <button onClick={finishTest}>Finish Test</button>}
+      {writtenValue && !isFinished && (
+        <button onClick={finishTest}>Finish Test</button>
+      )}
     </div>
   );
 };
